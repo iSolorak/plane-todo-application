@@ -1,0 +1,62 @@
+# Local Codex/agent workspace metadata
+.agents/
+.codex/
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs and generated bundles
+dist/
+build/
+out/
+lib/
+coverage/
+.turbo/
+.tsbuildinfo
+*.tsbuildinfo
+
+# Expo / React Native local state
+.expo/
+.expo-shared/
+.eas/
+web-build/
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Environment and secret files
+.env
+.env.*
+!.env.example
+!.env.*.example
+ignore.text
+**/ignore.text
+
+# Local databases and runtime data
+/data/
+/plane-todo/data/
+/plane-todo/apps/notifier/data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+
+# Logs and diagnostics
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo

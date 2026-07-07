@@ -1,0 +1,11 @@
+{
+  "//": "Typechecks the framework-agnostic + react-query layer (no React Native / Expo runtime needed). The full app is checked by tsconfig.json via `typecheck:app`.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "verbatimModuleSyntax": false,
+    "lib": ["ES2021", "DOM"],
+    "types": []
+  },
+  "include": ["src/lib", "src/data", "test"]
+}

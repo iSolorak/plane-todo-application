@@ -1,0 +1,53 @@
+# docker-compose.snippet.yml
+#
+# Add this `notifier` service to (or merge it into) your Plane self-hosted
+# compose file so Plane and the notifier share a network. Plane's webhook can
+# then reach the service by name at http://notifier:3005/webhooks/plane.
+#
+# The snippet assumes Plane's compose defines a network; adjust the network
+# name (`plane-network` below) to match yours, or attach to Plane's default.
+
+services:
+  notifier:
+    build:
+      context: ./plane-todo
+      dockerfile: apps/notifier/Dockerfile
+    # Or use a prebuilt image instead of `build:`
+    # image: your-registry/plane-notifier:latest
+    container_name: plane-notifier
+    restart: unless-stopped
+    environment:
+      PLANE_BASE_URL: ${PLANE_BASE_URL}
+      PLANE_WORKSPACE_SLUG: ${PLANE_WORKSPACE_SLUG}
+      PLANE_API_KEY: ${PLANE_API_KEY}
+      PLANE_PROJECT_IDS: ${PLANE_PROJECT_IDS}
+      PLANE_WEBHOOK_SECRET: ${PLANE_WEBHOOK_SECRET}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_TO: ${SMTP_TO:-}
+      TZ: ${TZ:-Europe/Athens}
+      PORT: "3005"
+      DB_PATH: /data/notifier.db
+      CONFIG_PATH: /app/apps/notifier/config.json
+    volumes:
+      # Persist the SQLite DB across restarts.
+      - notifier-data:/data
+    # No ports published to the host are required — Plane reaches it in-network
+    # at http://notifier:3005. Uncomment to expose for local debugging:
+    # ports:
+    #   - "3005:3005"
+    networks:
+      - plane-network
+
+volumes:
+  notifier-data:
+
+networks:
+  # Must match the network Plane's services are attached to. If Plane uses its
+  # compose-default network, reference it here as `external: true`.
+  plane-network:
+    external: true
+    name: plane-network

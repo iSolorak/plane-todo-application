@@ -1,0 +1,36 @@
+{
+  "name": "@plane-todo/notifier",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Single-user reminder/notification service for Plane work items (webhook + cron).",
+  "type": "module",
+  "main": "src/index.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@plane-todo/core": "workspace:*",
+    "better-sqlite3": "^11.3.0",
+    "dotenv": "^16.4.5",
+    "expo-server-sdk": "^3.10.0",
+    "fastify": "^4.28.1",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.14"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.14.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^6.4.15",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

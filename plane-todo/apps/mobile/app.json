@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Plane Todo",
+    "slug": "plane-todo-mobile",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "planetodo",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": { "supportsTablet": true },
+    "android": {}
+  }
+}

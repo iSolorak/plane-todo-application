@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "verbatimModuleSyntax": false,
+    "noEmit": true,
+    "lib": ["ES2021", "DOM"],
+    "skipLibCheck": true
+  },
+  "include": ["src", "test", "App.tsx", "index.ts"]
+}
