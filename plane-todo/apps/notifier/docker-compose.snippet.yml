@@ -28,7 +28,7 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_TO: ${SMTP_TO:-}
-      TZ: ${TZ:-Europe/Athens}
+      TZ: ${TZ:-UTC}
       PORT: "3005"
       DB_PATH: /data/notifier.db
       CONFIG_PATH: /app/apps/notifier/config.json

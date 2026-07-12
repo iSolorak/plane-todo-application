@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   decodeEntities,
+  plainTextToDescriptionHtml,
   sanitizeHtml,
   toPreview,
 } from "../src/lib/sanitizeHtml";
@@ -76,5 +77,18 @@ describe("toPreview", () => {
 
   it("does not truncate short text", () => {
     expect(toPreview("<p>short</p>", 20)).toBe("short");
+  });
+});
+
+describe("plainTextToDescriptionHtml", () => {
+  it("trims empty descriptions to null", () => {
+    expect(plainTextToDescriptionHtml("   ")).toBeNull();
+    expect(plainTextToDescriptionHtml("\n\n")).toBeNull();
+  });
+
+  it("escapes user text and preserves line breaks", () => {
+    expect(plainTextToDescriptionHtml(" <b>One</b>\nTwo & three ")).toBe(
+      "&lt;b&gt;One&lt;/b&gt;<br />Two &amp; three",
+    );
   });
 });

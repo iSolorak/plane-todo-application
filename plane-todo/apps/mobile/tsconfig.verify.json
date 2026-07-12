@@ -1,5 +1,5 @@
 {
-  "//": "Typechecks the framework-agnostic + react-query layer (no React Native / Expo runtime needed). The full app is checked by tsconfig.json via `typecheck:app`.",
+  "//": "Typechecks the framework-agnostic + react-query data layer (no React Native / Expo runtime needed). The full app (app/ routes, src/native, src/components) is checked by tsconfig.json via `typecheck:app`.",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,

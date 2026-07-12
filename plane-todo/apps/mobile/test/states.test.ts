@@ -81,3 +81,23 @@ describe("pickReopenState", () => {
     expect(pickReopenState(only)).toBeUndefined();
   });
 });
+
+describe("non-array guards (loading / wrapper data must not throw)", () => {
+  const NOT_ARRAYS = [
+    undefined,
+    null,
+    { results: [st("done", "completed", 1)] },
+  ] as unknown as State[][];
+
+  it("pickCompleteState returns undefined for non-array input", () => {
+    for (const input of NOT_ARRAYS) {
+      expect(pickCompleteState(input as unknown as State[])).toBeUndefined();
+    }
+  });
+
+  it("pickReopenState returns undefined for non-array input", () => {
+    for (const input of NOT_ARRAYS) {
+      expect(pickReopenState(input as unknown as State[])).toBeUndefined();
+    }
+  });
+});

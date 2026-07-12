@@ -3,11 +3,31 @@
     "name": "Plane Todo",
     "slug": "plane-todo-mobile",
     "version": "0.0.0",
-    "orientation": "portrait",
     "scheme": "planetodo",
+    "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "ios": { "supportsTablet": true },
-    "android": {}
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.planetodo"
+    },
+    "android": {
+      "package": "com.example.planetodo"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#2563eb"
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
   }
 }

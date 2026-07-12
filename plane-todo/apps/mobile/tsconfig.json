@@ -4,8 +4,16 @@
     "jsx": "react-jsx",
     "verbatimModuleSyntax": false,
     "noEmit": true,
-    "lib": ["ES2021", "DOM"],
-    "skipLibCheck": true
+    "lib": [
+      "ES2021",
+      "DOM"
+    ],
+    "skipLibCheck": true,
+    "moduleResolution": "Bundler",
+    "allowJs": true
   },
-  "include": ["src", "test", "App.tsx", "index.ts"]
+  "include": [
+    "src",
+    "app"
+  ]
 }

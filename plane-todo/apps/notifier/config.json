@@ -6,7 +6,7 @@
   "digest": {
     "enabled": true,
     "time": "08:00",
-    "tz": "Europe/Athens"
+    "tz": "UTC"
   },
   "minCatchupMinutes": 30
 }

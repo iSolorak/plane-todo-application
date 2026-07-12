@@ -19,6 +19,7 @@ function bySequence(a: State, b: State): number {
  * Returns undefined when the project has no completed states configured.
  */
 export function pickCompleteState(states: State[]): State | undefined {
+  if (!Array.isArray(states)) return undefined;
   const completed = states.filter((s) => s.group === "completed");
   if (completed.length === 0) return undefined;
   return (
@@ -35,6 +36,7 @@ export function pickCompleteState(states: State[]): State | undefined {
  * the single default is a backlog/unstarted state used for new issues).
  */
 export function pickReopenState(states: State[]): State | undefined {
+  if (!Array.isArray(states)) return undefined;
   const projectDefault = states.find((s) => s.default);
   if (projectDefault) return projectDefault;
   const unstarted = states.filter((s) => s.group === "unstarted");

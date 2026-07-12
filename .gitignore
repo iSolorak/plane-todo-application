@@ -7,10 +7,11 @@ node_modules/
 **/node_modules/
 
 # Build outputs and generated bundles
+# NOTE: do not add a bare `lib/` here — it would ignore real source such as
+# apps/mobile/src/lib/. All packages build to dist/, not lib/.
 dist/
 build/
 out/
-lib/
 coverage/
 .turbo/
 .tsbuildinfo

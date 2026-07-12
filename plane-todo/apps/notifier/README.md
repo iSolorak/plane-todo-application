@@ -94,7 +94,7 @@ Reminder offsets live in [`config.json`](./config.json):
     { "key": "1d", "minutesBefore": 1440 },
     { "key": "1h", "minutesBefore": 60 }
   ],
-  "digest": { "enabled": true, "time": "08:00", "tz": "Europe/Athens" },
+  "digest": { "enabled": true, "time": "08:00", "tz": "UTC" },
   "minCatchupMinutes": 30
 }
 ```

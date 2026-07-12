@@ -1,4 +1,5 @@
 import { StyleSheet, Switch, Text, View } from "react-native";
+import { colors, radii, spacing, typography } from "../theme";
 
 export interface ShowDoneToggleProps {
   value: boolean;
@@ -17,7 +18,13 @@ export function ShowDoneToggle({
         Show done
         {!value && hiddenCount ? ` (${hiddenCount} hidden)` : ""}
       </Text>
-      <Switch value={value} onValueChange={onValueChange} />
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        accessibilityLabel="Show done items"
+        trackColor={{ false: colors.border, true: colors.cardGreen }}
+        thumbColor={value ? colors.green : colors.white}
+      />
     </View>
   );
 }
@@ -27,8 +34,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  label: { fontSize: 15, color: "#374151" },
+  label: { ...typography.body, color: colors.text, fontWeight: "700" },
 });

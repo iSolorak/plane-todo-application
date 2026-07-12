@@ -55,3 +55,16 @@ describe("countDone", () => {
     expect(countDone(ITEMS)).toBe(2);
   });
 });
+
+describe("non-array guards (loading / wrapper data must not throw)", () => {
+  it("filterItems returns [] for undefined or wrapper input", () => {
+    expect(filterItems(undefined as unknown as WorkItem[], { showDone: false })).toEqual([]);
+    expect(
+      filterItems({ results: ITEMS } as unknown as WorkItem[], { showDone: true }),
+    ).toEqual([]);
+  });
+
+  it("countDone returns 0 for undefined input", () => {
+    expect(countDone(undefined as unknown as WorkItem[])).toBe(0);
+  });
+});

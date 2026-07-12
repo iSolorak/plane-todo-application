@@ -1,1 +1,5 @@
 cloudflared tunnel --url http://localhost:3005
+QT_QPA_PLATFORM=xcb emulator -avd android16_google_api \
+  -gpu swiftshader_indirect \
+  -no-snapshot-load \
+  -no-boot-anim

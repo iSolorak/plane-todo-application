@@ -64,15 +64,15 @@ function logOutcome(payload: PlaneWebhookPayload, result: HandlerResult): void {
 
   if (!result.handled) return; // other no-ops (untracked project, etc.) stay quiet
 
-  const data = payload.data ?? {};
+  const data = payload.data;
   if (result.op === "upsert") {
     console.log(
-      `[webhook] issue ${payload.action} ${data.id} "${data.name ?? ""}" ` +
-        `target_date=${data.target_date ?? "none"} → mirror upserted`,
+      `[webhook] issue ${payload.action} ${data?.id} "${data?.name ?? ""}" ` +
+        `target_date=${data?.target_date ?? "none"} → mirror upserted`,
     );
   } else {
     console.log(
-      `[webhook] issue ${payload.action} ${data.id} → mirror row removed`,
+      `[webhook] issue ${payload.action} ${data?.id} → mirror row removed`,
     );
   }
 }
