@@ -5,9 +5,12 @@ import { Platform } from "react-native";
 export type PushPermission = "granted" | "denied" | "undetermined";
 
 // Foreground handler: show a banner even when the app is open.
+// SDK 54's expo-notifications replaced `shouldShowAlert` with the more granular
+// `shouldShowBanner` + `shouldShowList` presentation flags.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
