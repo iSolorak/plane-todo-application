@@ -40,10 +40,17 @@ export async function getExpoPushToken(): Promise<string | null> {
   const extra = Constants.expoConfig?.extra as
     | { eas?: { projectId?: string } }
     | undefined;
-  const projectId = extra?.eas?.projectId;
-  const token = await Notifications.getExpoPushTokenAsync(
-    projectId ? { projectId } : undefined,
-  );
+  // In Expo Go a projectId is REQUIRED to obtain an Expo push token; without it
+  // getExpoPushTokenAsync throws. Resolve from app config (set EAS_PROJECT_ID,
+  // e.g. via `eas init`) or the classic easConfig fallback.
+  const projectId =
+    extra?.eas?.projectId ?? (Constants as { easConfig?: { projectId?: string } }).easConfig?.projectId;
+  if (!projectId) {
+    throw new Error(
+      "Missing EAS projectId — set EAS_PROJECT_ID (run `eas init`) so push tokens can be issued.",
+    );
+  }
+  const token = await Notifications.getExpoPushTokenAsync({ projectId });
   return token.data ?? null;
 }
 

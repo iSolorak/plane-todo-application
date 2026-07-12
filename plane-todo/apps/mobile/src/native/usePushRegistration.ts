@@ -52,8 +52,10 @@ export function usePushRegistration(
           await saveRegisteredPushToken(token);
         }
         if (!cancelled) setState({ status: "registered", token });
-      } catch {
-        // Best-effort: never crash the app over push registration.
+      } catch (err) {
+        // Best-effort: never crash the app over push registration, but log the
+        // reason (e.g. missing EAS projectId) so it's debuggable in Settings/logs.
+        console.warn("[push] registration failed:", err);
         if (!cancelled) setState({ status: "error", token: null });
       }
     };
