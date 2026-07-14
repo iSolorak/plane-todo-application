@@ -35,6 +35,10 @@ google-services.json
 GoogleService-Info.plist
 **/credentials/*.json
 !**/credentials/*.example.json
+# Belt-and-braces: Firebase admin SDK service-account keys have a
+# recognizable naming pattern (`<project>-firebase-adminsdk-<hash>.json`);
+# ignore them anywhere in the tree so a stray copy can never be committed.
+*-firebase-adminsdk-*.json
 
 # Environment and secret files
 .env

@@ -9,4 +9,6 @@ export type PushStatus =
 export interface PushState {
   status: PushStatus;
   token: string | null;
+  /** Human-readable reason when status is `"error"` (or `"denied"`), else null. */
+  errorMessage: string | null;
 }

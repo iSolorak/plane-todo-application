@@ -15,7 +15,7 @@ async function main(): Promise<void> {
   const store = new Store(db);
   const senders = createSenders(env);
 
-  const app = buildServer({ store, env, reminderConfig: config });
+  const app = buildServer({ store, env, reminderConfig: config, senders });
   await app.listen({ host: "0.0.0.0", port: env.port });
   console.log(`[notifier] listening on :${env.port} (tz=${env.tz})`);
 

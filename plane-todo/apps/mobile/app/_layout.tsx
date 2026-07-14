@@ -1,5 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, useRouter, useSegments } from "expo-router";
+import {
+  Stack,
+  useGlobalSearchParams,
+  useRouter,
+  useSegments,
+} from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -47,12 +52,16 @@ function Gate() {
 
   const segments = useSegments();
   const router = useRouter();
+  const { edit } = useGlobalSearchParams<{ edit?: string }>();
   useEffect(() => {
     if (!ready) return;
     const inSetup = segments[0] === "setup";
     if (!complete && !inSetup) router.replace("/setup");
-    else if (complete && inSetup) router.replace("/(tabs)/today");
-  }, [ready, complete, segments, router]);
+    // If setup is already complete, only bounce out of /setup when the user
+    // didn't enter it intentionally to edit (Settings → "Edit configuration"
+    // passes `?edit=1`). setup.tsx returns to the app on save/cancel.
+    else if (complete && inSetup && !edit) router.replace("/(tabs)/today");
+  }, [ready, complete, segments, router, edit]);
 
   return (
     <PushProvider enabled={complete} notifierBaseUrl={config?.notifierBaseUrl}>

@@ -23,8 +23,13 @@ type FieldErrors = Partial<Record<keyof AppConfig, string>>;
 
 export default function SetupScreen() {
   const { config, save } = useConfig();
-  const params = useLocalSearchParams<{ error?: string }>();
+  const params = useLocalSearchParams<{ error?: string; edit?: string }>();
   const router = useRouter();
+
+  // Distinguish initial setup from editing an existing config. The header text,
+  // CTA label, and Cancel affordance all key off this. Settings routes here
+  // with `?edit=1`; _layout.tsx lets us stay on /setup while it's set.
+  const editMode = params.edit === "1" && !!config;
 
   const [draft, setDraft] = useState<ConfigDraft>(() => config ?? {});
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -37,11 +42,23 @@ export default function SetupScreen() {
     setDraft((d) => ({ ...d, [key]: value }));
 
   const onSubmit = async () => {
-    const fieldErrors = configFieldErrors(draft);
+    // In edit mode, an empty API-key field means "keep the existing key" so the
+    // user doesn't have to re-type it every time. Merge before validation.
+    const merged: ConfigDraft =
+      editMode && config
+        ? {
+            ...draft,
+            planeApiKey: draft.planeApiKey?.trim()
+              ? draft.planeApiKey
+              : config.planeApiKey,
+          }
+        : draft;
+
+    const fieldErrors = configFieldErrors(merged);
     setErrors(fieldErrors);
     if (Object.keys(fieldErrors).length > 0) return;
 
-    const cfg = normalizeConfig(draft);
+    const cfg = normalizeConfig(merged);
     setSubmitting(true);
     setFormError(null);
     try {
@@ -53,7 +70,7 @@ export default function SetupScreen() {
       });
       await client.listProjects();
       await save(cfg);
-      router.replace("/(tabs)/today");
+      router.replace(editMode ? "/(tabs)/settings" : "/(tabs)/today");
     } catch (err) {
       setFormError(toUserFacingError(err).message);
     } finally {
@@ -67,9 +84,13 @@ export default function SetupScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Connect to Plane</Text>
+        <Text style={styles.title}>
+          {editMode ? "Edit configuration" : "Connect to Plane"}
+        </Text>
         <Text style={styles.subtitle}>
-          Self-hosted, single user. Your API key is stored securely on-device.
+          {editMode
+            ? "Change only the fields you need — leave the API key blank to keep the current one."
+            : "Self-hosted, single user. Your API key is stored securely on-device."}
         </Text>
 
         {formError ? <Text style={styles.formError}>{formError}</Text> : null}
@@ -94,7 +115,7 @@ export default function SetupScreen() {
           label="API key"
           value={draft.planeApiKey ?? ""}
           onChangeText={set("planeApiKey")}
-          placeholder="plane_api_…"
+          placeholder={editMode ? "Leave blank to keep current" : "plane_api_…"}
           secureTextEntry
           error={errors.planeApiKey}
         />
@@ -118,12 +139,28 @@ export default function SetupScreen() {
           onPress={onSubmit}
           disabled={submitting}
           accessibilityRole="button"
-          accessibilityLabel="Validate and save"
+          accessibilityLabel={editMode ? "Save configuration" : "Validate and save"}
         >
           <Text style={styles.buttonText}>
-            {submitting ? "Validating…" : "Validate & continue"}
+            {submitting
+              ? "Validating…"
+              : editMode
+                ? "Save changes"
+                : "Validate & continue"}
           </Text>
         </Pressable>
+
+        {editMode ? (
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => router.replace("/(tabs)/settings")}
+            disabled={submitting}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel and go back"
+          >
+            <Text style={styles.secondaryButtonText}>Cancel</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -150,4 +187,11 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: "white", fontWeight: "700", fontSize: 16 },
+  secondaryButton: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  secondaryButtonText: { color: "#6b7280", fontWeight: "700", fontSize: 15 },
 });

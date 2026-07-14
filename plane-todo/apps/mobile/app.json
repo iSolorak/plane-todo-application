@@ -9,10 +9,15 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.planetodo"
+      "bundleIdentifier": "com.example.planetodo",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
-      "package": "com.example.planetodo"
+      "package": "solorak.app.v1"
     },
     "plugins": [
       "expo-router",
@@ -23,7 +28,15 @@
           "color": "#2563eb"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {
@@ -32,7 +45,6 @@
       "eas": {
         "projectId": "projectid"
       }
-    },
-    "owner": "solorak"
+    }
   }
 }

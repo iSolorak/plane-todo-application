@@ -27,7 +27,15 @@ export async function syncProjectReminders(
     workspaceSlug: env.planeWorkspaceSlug,
   };
 
-  for (const projectId of env.planeProjectIds) {
+  // Empty planeProjectIds means "all projects" — discover them at run-time so
+  // users don't have to maintain PLANE_PROJECT_IDS. New projects created after
+  // boot are picked up on the next sync run.
+  const projectIds =
+    env.planeProjectIds.length > 0
+      ? env.planeProjectIds
+      : (await client.listProjects()).map((p) => p.id);
+
+  for (const projectId of projectIds) {
     let cursor: string | undefined;
     do {
       const page = await client.listWorkItems(projectId, {

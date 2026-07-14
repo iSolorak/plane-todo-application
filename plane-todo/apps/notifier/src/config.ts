@@ -50,7 +50,6 @@ const REQUIRED = [
   "PLANE_BASE_URL",
   "PLANE_WORKSPACE_SLUG",
   "PLANE_API_KEY",
-  "PLANE_PROJECT_IDS",
   "PLANE_WEBHOOK_SECRET",
 ] as const;
 
@@ -70,15 +69,18 @@ export function loadEnv(
     );
   }
 
-  const projectIds = (source.PLANE_PROJECT_IDS ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (projectIds.length === 0) {
-    throw new Error(
-      "PLANE_PROJECT_IDS must contain at least one project id (comma-separated).",
-    );
-  }
+  // PLANE_PROJECT_IDS is optional now: leave it empty, or set it to `*` / `all`
+  // to track every project in the workspace (auto-discovered via listProjects).
+  // Otherwise pass a comma-separated list of project ids to scope reminders.
+  const rawProjectIds = (source.PLANE_PROJECT_IDS ?? "").trim();
+  const allProjects =
+    rawProjectIds === "" || rawProjectIds === "*" || rawProjectIds.toLowerCase() === "all";
+  const projectIds = allProjects
+    ? []
+    : rawProjectIds
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
 
   const port = source.PORT ? Number(source.PORT) : 3005;
   if (!Number.isFinite(port)) {

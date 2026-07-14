@@ -1,0 +1,38 @@
+# Files EAS Build should EXCLUDE from the upload. When present, this file
+# fully replaces the .gitignore-based defaults for the build tarball — so we
+# must list everything we still want excluded (node_modules, native builds,
+# secrets that DON'T belong in a build), and NOT list files EAS needs at
+# build time even though they're gitignored.
+#
+# Notably, `.env` is intentionally NOT listed here: `app.config.js` reads
+# EAS_PROJECT_ID and EAS_OWNER from process.env during EAS's build phase; if
+# .env isn't uploaded, those come out undefined and push registration fails
+# on device with "No projectId found." Ditto google-services.json for FCM.
+
+node_modules
+android
+ios
+.expo
+.expo-shared
+web-build
+dist
+build
+coverage
+*.log
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# Signing artifacts / provisioning that should NEVER go into a build tarball.
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# FCM V1 service account key is uploaded to Expo, NEVER embedded in the app.
+credentials/google-service-account-key.json

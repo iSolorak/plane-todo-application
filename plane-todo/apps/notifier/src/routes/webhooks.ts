@@ -1,6 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import type { AppEnv } from "../config.js";
+import { maybeSendSameDay } from "../cron/sameDay.js";
 import type { Store } from "../db.js";
+import { buildReminderRow } from "../reminders.js";
+import type { Senders } from "../senders/index.js";
 import type { LruSet } from "../webhook/dedup.js";
 import {
   handlePlaneWebhook,
@@ -13,6 +16,12 @@ export interface WebhookRouteDeps {
   store: Store;
   env: AppEnv;
   dedup: LruSet;
+  /**
+   * When provided, upserts whose new target_date equals today (in env.tz)
+   * trigger a best-effort "due today" push. Omitted by tests that only exercise
+   * the handler's mirroring semantics.
+   */
+  senders?: Senders;
 }
 
 export function registerWebhookRoute(
@@ -38,13 +47,31 @@ export function registerWebhookRoute(
     }
 
     const payload = (req.body ?? {}) as PlaneWebhookPayload;
-    const result = handlePlaneWebhook(deps.store, payload, {
+    const ctx = {
       projectIds: deps.env.planeProjectIds,
       baseUrl: deps.env.planeBaseUrl,
       workspaceSlug: deps.env.planeWorkspaceSlug,
-    });
+    };
+    const result = handlePlaneWebhook(deps.store, payload, ctx);
 
     logOutcome(payload, result);
+
+    // Same-day push: when the upserted row's target_date == today, fire a
+    // one-shot notification. Guarded by sent_log inside maybeSendSameDay so a
+    // second event on the same day for the same item is a no-op.
+    if (result.handled && result.op === "upsert" && deps.senders && payload.data) {
+      const row = buildReminderRow(payload.data, ctx);
+      if (row) {
+        maybeSendSameDay(row, {
+          store: deps.store,
+          senders: deps.senders,
+          now: new Date(),
+          tz: deps.env.tz,
+        }).catch((err) => {
+          console.error("[webhook] same-day send failed:", err);
+        });
+      }
+    }
 
     return reply.send({ ok: true, ...result });
   });

@@ -6,6 +6,7 @@ import { registerDebugRoutes } from "./routes/debug.js";
 import { registerDeviceRoutes } from "./routes/devices.js";
 import { registerHealthRoute } from "./routes/health.js";
 import { registerWebhookRoute } from "./routes/webhooks.js";
+import type { Senders } from "./senders/index.js";
 import { LruSet } from "./webhook/dedup.js";
 
 declare module "fastify" {
@@ -22,6 +23,12 @@ export interface ServerDeps {
   reminderConfig?: ReminderConfig;
   /** Overridable for tests. Defaults to an LRU of the last 500 delivery ids. */
   deliveryDedup?: LruSet;
+  /**
+   * When provided, webhook upserts whose target_date equals today (in env.tz)
+   * trigger a best-effort "due today" push. Tests that only exercise routing
+   * omit this to keep the surface pure.
+   */
+  senders?: Senders;
 }
 
 export function buildServer(deps: ServerDeps): FastifyInstance {
@@ -50,7 +57,12 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   const dedup = deps.deliveryDedup ?? new LruSet(500);
 
   registerHealthRoute(app);
-  registerWebhookRoute(app, { store: deps.store, env: deps.env, dedup });
+  registerWebhookRoute(app, {
+    store: deps.store,
+    env: deps.env,
+    dedup,
+    senders: deps.senders,
+  });
   registerDeviceRoutes(app, { store: deps.store });
 
   if (deps.reminderConfig) {

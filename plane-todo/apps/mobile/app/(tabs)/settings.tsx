@@ -43,6 +43,9 @@ export default function SettingsScreen() {
 
       <Section title="Push notifications">
         <Row label="Status" value={PUSH_LABEL[push.status]} />
+        {push.errorMessage ? (
+          <Text style={styles.error}>{push.errorMessage}</Text>
+        ) : null}
       </Section>
 
       {config.notifierBaseUrl ? (
@@ -72,6 +75,15 @@ export default function SettingsScreen() {
           ) : null}
         </Section>
       ) : null}
+
+      <Pressable
+        style={styles.edit}
+        onPress={() => router.push("/setup?edit=1")}
+        accessibilityRole="button"
+        accessibilityLabel="Edit configuration"
+      >
+        <Text style={styles.editText}>Edit configuration</Text>
+      </Pressable>
 
       <Pressable
         style={styles.reset}
@@ -136,6 +148,13 @@ const styles = StyleSheet.create({
   },
   muted: { ...typography.body, color: colors.muted },
   error: { ...typography.body, color: colors.red },
+  edit: {
+    borderRadius: radii.lg,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: colors.orange,
+  },
+  editText: { color: colors.white, fontWeight: "900" },
   reset: {
     borderWidth: 1,
     borderColor: colors.red,

@@ -24,34 +24,41 @@ export function usePushRegistration(
   const [state, setState] = useState<PushState>({
     status: "disabled",
     token: null,
+    errorMessage: null,
   });
 
   useEffect(() => {
     if (!enabled || !notifierBaseUrl) {
-      setState({ status: "disabled", token: null });
+      setState({ status: "disabled", token: null, errorMessage: null });
       return;
     }
 
     // Expo Go can't do remote push — skip registration entirely so the
     // push-token APIs (which log the "removed from Expo Go" error) never run.
     if (!isRemotePushSupported()) {
-      setState({ status: "unsupported", token: null });
+      setState({ status: "unsupported", token: null, errorMessage: null });
       return;
     }
 
     let cancelled = false;
     const run = async () => {
-      setState((prev) => ({ ...prev, status: "registering" }));
+      setState((prev) => ({ ...prev, status: "registering", errorMessage: null }));
       try {
         await ensureAndroidChannel();
         const permission = await requestPermission();
         if (permission !== "granted") {
-          if (!cancelled) setState({ status: "denied", token: null });
+          if (!cancelled)
+            setState({ status: "denied", token: null, errorMessage: null });
           return;
         }
         const token = await getExpoPushToken();
         if (!token) {
-          if (!cancelled) setState({ status: "error", token: null });
+          if (!cancelled)
+            setState({
+              status: "error",
+              token: null,
+              errorMessage: "Expo returned no push token.",
+            });
           return;
         }
         const previouslyRegistered = await loadRegisteredPushToken();
@@ -59,12 +66,18 @@ export function usePushRegistration(
           await postTokenToNotifier(notifierBaseUrl, token);
           await saveRegisteredPushToken(token);
         }
-        if (!cancelled) setState({ status: "registered", token });
+        if (!cancelled)
+          setState({ status: "registered", token, errorMessage: null });
       } catch (err) {
-        // Best-effort: never crash the app over push registration, but log the
-        // reason (e.g. missing EAS projectId) so it's debuggable in Settings/logs.
+        // Best-effort: never crash the app over push registration, but surface
+        // the reason to Settings so the user can act on it.
         console.warn("[push] registration failed:", err);
-        if (!cancelled) setState({ status: "error", token: null });
+        if (!cancelled)
+          setState({
+            status: "error",
+            token: null,
+            errorMessage: describeError(err),
+          });
       }
     };
     void run();
@@ -75,4 +88,10 @@ export function usePushRegistration(
   }, [enabled, notifierBaseUrl]);
 
   return state;
+}
+
+function describeError(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string" && err) return err;
+  return "Unknown error.";
 }
