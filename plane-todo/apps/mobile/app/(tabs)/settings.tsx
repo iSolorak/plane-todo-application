@@ -11,6 +11,7 @@ const PUSH_LABEL: Record<PushStatus, string> = {
   registering: "Registering…",
   registered: "Registered ✓",
   denied: "Notifications denied — enable in system settings",
+  unsupported: "Unavailable in Expo Go — use a development build",
   error: "Registration failed",
 };
 

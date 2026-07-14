@@ -1,8 +1,19 @@
+import { isRunningInExpoGo } from "expo";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 export type PushPermission = "granted" | "denied" | "undetermined";
+
+/**
+ * Remote push notifications were removed from Expo Go (Android as of SDK 53;
+ * deprecated on iOS). Calling the push-token APIs there logs errors and can't
+ * yield a working token, so callers should skip registration entirely and use
+ * a development build instead.
+ */
+export function isRemotePushSupported(): boolean {
+  return !isRunningInExpoGo();
+}
 
 // Foreground handler: show a banner even when the app is open.
 // SDK 54's expo-notifications replaced `shouldShowAlert` with the more granular

@@ -30,6 +30,12 @@ ios/
 *.key
 *.mobileprovision
 
+# Firebase / FCM credentials — never commit real ones (only *.example.json)
+google-services.json
+GoogleService-Info.plist
+**/credentials/*.json
+!**/credentials/*.example.json
+
 # Environment and secret files
 .env
 .env.*

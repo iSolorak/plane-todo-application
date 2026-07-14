@@ -3,6 +3,7 @@ export type PushStatus =
   | "registering"
   | "registered"
   | "denied" // permission not granted
+  | "unsupported" // running in Expo Go, where remote push is unavailable
   | "error";
 
 export interface PushState {

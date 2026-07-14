@@ -1,0 +1,26 @@
+{
+  "__comment": "TEMPLATE ONLY. Download the real file from Firebase console -> Project settings -> Your apps -> Android app -> google-services.json, then copy it to `google-services.json` (gitignored) in this folder. The android_client_info.package_name MUST match `android.package` in app.json.",
+  "project_info": {
+    "project_number": "YOUR_FIREBASE_PROJECT_NUMBER",
+    "project_id": "your-firebase-project-id",
+    "storage_bucket": "your-firebase-project-id.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_APP_HASH",
+        "android_client_info": {
+          "package_name": "com.example.planetodo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        { "current_key": "YOUR_ANDROID_API_KEY_GOES_HERE" }
+      ],
+      "services": {
+        "appinvite_service": { "other_platform_oauth_client": [] }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

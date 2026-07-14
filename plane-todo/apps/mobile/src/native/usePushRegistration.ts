@@ -3,6 +3,7 @@ import type { PushState } from "../data/pushTypes";
 import {
   ensureAndroidChannel,
   getExpoPushToken,
+  isRemotePushSupported,
   postTokenToNotifier,
   requestPermission,
 } from "./push";
@@ -28,6 +29,13 @@ export function usePushRegistration(
   useEffect(() => {
     if (!enabled || !notifierBaseUrl) {
       setState({ status: "disabled", token: null });
+      return;
+    }
+
+    // Expo Go can't do remote push — skip registration entirely so the
+    // push-token APIs (which log the "removed from Expo Go" error) never run.
+    if (!isRemotePushSupported()) {
+      setState({ status: "unsupported", token: null });
       return;
     }
 
