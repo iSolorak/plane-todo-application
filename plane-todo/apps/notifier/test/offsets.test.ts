@@ -2,15 +2,21 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { openDb, Store, type ReminderRow } from "../src/db.js";
 import { runOffsetReminders, shouldFire } from "../src/cron/offsets.js";
 import { resolveTargetInstant } from "../src/time.js";
-import type { PushMessage, Senders } from "../src/senders/index.js";
+import type { PushMessage, PushResult, Senders } from "../src/senders/index.js";
 
 const DEVICE = "ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]";
 
+const OK_PUSH: PushResult = {
+  attempted: 1,
+  accepted: 1,
+  ticketErrors: [],
+  invalidTokens: [],
+  chunkErrors: [],
+};
+
 function mockSenders() {
   return {
-    sendPush: vi.fn(async (_tokens: string[], _message: PushMessage) => ({
-      invalidTokens: [] as string[],
-    })),
+    sendPush: vi.fn(async (_tokens: string[], _message: PushMessage) => OK_PUSH),
     sendEmail: vi.fn(async (_subject: string, _text: string) => {}),
   } satisfies Senders & {
     sendPush: ReturnType<typeof vi.fn>;

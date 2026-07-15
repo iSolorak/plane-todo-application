@@ -27,7 +27,13 @@ export function createSenders(env: AppEnv): Senders {
         return await push.send(tokens, message);
       } catch (err) {
         console.error("[push] send failed:", err);
-        return { invalidTokens: [] };
+        return {
+          attempted: 0,
+          accepted: 0,
+          ticketErrors: [],
+          invalidTokens: [],
+          chunkErrors: [err instanceof Error ? err.message : String(err)],
+        };
       }
     },
     async sendEmail(subject, text) {

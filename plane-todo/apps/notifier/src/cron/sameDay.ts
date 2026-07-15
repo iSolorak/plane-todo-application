@@ -1,7 +1,7 @@
 import type { ReminderRow } from "../db.js";
 import type { Store } from "../db.js";
 import type { Senders } from "../senders/index.js";
-import { dispatch } from "./dispatch.js";
+import { dispatch, type DispatchResult } from "./dispatch.js";
 import { ymdInTz } from "./digest.js";
 
 /** offsetKey prefix used to guard the same-day notification in sent_log. */
@@ -15,6 +15,10 @@ export interface SameDayDeps {
   tz: string;
 }
 
+export type SameDayResult =
+  | { sent: false; reason: string }
+  | { sent: true; dispatch: DispatchResult };
+
 /**
  * Send a "due today" push the moment a webhook confirms an item's `target_date`
  * equals today (in the configured tz). Guarded by sent_log with a
@@ -23,40 +27,41 @@ export interface SameDayDeps {
  * target_date is later moved to a different day, that new day gets its own key
  * and can fire again.
  *
- * Never throws — best-effort like all other sends.
+ * Never throws. Returns a structured result so callers (debug endpoints) can
+ * show *what actually happened* — a previous bug returned `true` even when 0
+ * devices were registered, masking a totally silent failure.
  */
 export async function maybeSendSameDay(
   row: ReminderRow,
   deps: SameDayDeps,
-): Promise<boolean> {
+): Promise<SameDayResult> {
   if (!row.target_date) {
-    console.log(`[same-day] skip: no target_date on ${row.work_item_id}`);
-    return false;
+    const reason = `no target_date on ${row.work_item_id}`;
+    console.log(`[same-day] skip: ${reason}`);
+    return { sent: false, reason };
   }
 
   const today = ymdInTz(deps.now, deps.tz);
   const rowYmd = row.target_date.slice(0, 10);
   if (rowYmd !== today) {
-    console.log(
-      `[same-day] skip: target_date ${rowYmd} != today ${today} (tz=${deps.tz})`,
-    );
-    return false;
+    const reason = `target_date ${rowYmd} != today ${today} (tz=${deps.tz})`;
+    console.log(`[same-day] skip: ${reason}`);
+    return { sent: false, reason };
   }
 
   const offsetKey = `${SAME_DAY_PREFIX}:${today}`;
   if (deps.store.isSent(row.work_item_id, offsetKey)) {
-    console.log(
-      `[same-day] skip: already sent for ${row.work_item_id} today (${offsetKey})`,
-    );
-    return false;
+    const reason = `already sent for ${row.work_item_id} today (${offsetKey})`;
+    console.log(`[same-day] skip: ${reason}`);
+    return { sent: false, reason };
   }
 
   const tokenCount = deps.store.listDeviceTokens().length;
   console.log(
-    `[same-day] sending "${row.name}" (${row.work_item_id}) to ${tokenCount} device(s)`,
+    `[same-day] dispatching "${row.name}" (${row.work_item_id}) to ${tokenCount} device(s)`,
   );
 
-  await dispatch(deps.store, deps.senders, {
+  const result = await dispatch(deps.store, deps.senders, {
     title: `Due today: ${row.name}`,
     body: row.url,
     data: {
@@ -68,7 +73,21 @@ export async function maybeSendSameDay(
     },
   });
 
-  deps.store.markSent(row.work_item_id, offsetKey, deps.now.toISOString());
-  console.log(`[same-day] sent + marked ${row.work_item_id} @ ${offsetKey}`);
-  return true;
+  // Only mark sent when a push was actually accepted by Expo — otherwise a
+  // retry on the next webhook (or debug trigger) will have another chance.
+  const anythingDelivered = (result.push?.accepted ?? 0) > 0;
+  if (anythingDelivered) {
+    deps.store.markSent(row.work_item_id, offsetKey, deps.now.toISOString());
+    console.log(
+      `[same-day] sent + marked ${row.work_item_id} @ ${offsetKey} (accepted=${result.push?.accepted})`,
+    );
+  } else {
+    console.log(
+      `[same-day] NOT marking sent — 0 pushes accepted ` +
+        `(tokens=${result.tokenCount}, invalid=${result.push?.invalidTokens.length ?? 0}, ` +
+        `ticketErrors=${result.push?.ticketErrors.length ?? 0}, chunkErrors=${result.push?.chunkErrors.length ?? 0})`,
+    );
+  }
+
+  return { sent: true, dispatch: result };
 }
