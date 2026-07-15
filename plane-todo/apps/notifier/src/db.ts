@@ -78,6 +78,7 @@ export class Store {
     deleteReminder: Database.Statement;
     deleteSentForItem: Database.Statement;
     allWithTargetDate: Database.Statement;
+    getReminder: Database.Statement;
     dueOn: Database.Statement;
     isSent: Database.Statement;
     markSent: Database.Statement;
@@ -108,6 +109,7 @@ export class Store {
       allWithTargetDate: db.prepare(
         `SELECT * FROM reminders WHERE target_date IS NOT NULL`,
       ),
+      getReminder: db.prepare(`SELECT * FROM reminders WHERE work_item_id = ?`),
       dueOn: db.prepare(
         `SELECT * FROM reminders WHERE substr(target_date, 1, 10) = ?`,
       ),
@@ -152,6 +154,16 @@ export class Store {
   clearSentForItem(workItemId: string): number {
     const info = this.stmts.deleteSentForItem.run(workItemId);
     return typeof info.changes === "number" ? info.changes : 0;
+  }
+
+  /**
+   * Read a single reminder row. Used by the webhook route to snapshot the
+   * *prior* state before the handler upserts, so same-day dispatch can tell
+   * whether this delivery is a transition (tomorrow → today) versus a no-op
+   * (today → today, e.g. an unrelated field edit).
+   */
+  getReminder(workItemId: string): ReminderRow | undefined {
+    return (this.stmts.getReminder.get(workItemId) as ReminderRow | undefined) ?? undefined;
   }
 
   allWithTargetDate(): ReminderRow[] {

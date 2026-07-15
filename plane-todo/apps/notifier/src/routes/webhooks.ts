@@ -78,6 +78,15 @@ export function registerWebhookRoute(
       baseUrl: deps.env.planeBaseUrl,
       workspaceSlug: deps.env.planeWorkspaceSlug,
     };
+
+    // Snapshot the item's prior target_date BEFORE the handler upserts,
+    // so same-day can distinguish "date just changed to today" (fire) from
+    // "date was already today, another field edited" (silent).
+    const priorTargetDate =
+      typeof payload.data?.id === "string"
+        ? (deps.store.getReminder(payload.data.id)?.target_date ?? null)
+        : null;
+
     const result = handlePlaneWebhook(deps.store, payload, ctx);
 
     logOutcome(payload, result);
@@ -106,6 +115,7 @@ export function registerWebhookRoute(
             senders: deps.senders,
             now: new Date(),
             tz: deps.env.tz,
+            previousTargetDate: priorTargetDate,
           }).catch((err) => {
             console.error("[webhook] same-day send failed:", err);
           });

@@ -77,7 +77,10 @@ describe("maybeSendSameDay", () => {
     );
   });
 
-  it("is idempotent: a second call the same day does NOT resend", async () => {
+  it("is idempotent for redelivered/unrelated-field webhooks on a same-day item", async () => {
+    // Real-world flow: 1st webhook creates the item today (no prior state) →
+    // fires. 2nd webhook is an unrelated edit — target_date is still today,
+    // and prior state was also today → transition guard blocks the re-fire.
     const { senders, sendPush } = fakeSenders();
     await maybeSendSameDay(reminderRow(), { store, senders, now: NOW, tz: "UTC" });
     const second = await maybeSendSameDay(reminderRow(), {
@@ -85,9 +88,10 @@ describe("maybeSendSameDay", () => {
       senders,
       now: NOW,
       tz: "UTC",
+      previousTargetDate: "2026-07-14", // stored state is today after the first webhook
     });
     expect(second.sent).toBe(false);
-    if (!second.sent) expect(second.reason).toContain("already sent");
+    if (!second.sent) expect(second.reason).toContain("no transition");
     expect(sendPush).toHaveBeenCalledTimes(1);
   });
 
@@ -134,6 +138,70 @@ describe("maybeSendSameDay", () => {
       { store, senders, now: day2, tz: "UTC" },
     );
     expect(second.sent).toBe(true);
+    expect(sendPush).toHaveBeenCalledTimes(2);
+  });
+
+  it("fires on a fresh-create (no previousTargetDate)", async () => {
+    const { senders, sendPush } = fakeSenders();
+    const result = await maybeSendSameDay(reminderRow(), {
+      store,
+      senders,
+      now: NOW,
+      tz: "UTC",
+      // previousTargetDate omitted -> undefined -> treated as fresh create
+    });
+    expect(result.sent).toBe(true);
+    expect(sendPush).toHaveBeenCalledTimes(1);
+  });
+
+  it("SKIPS when the item was already due today before the webhook", async () => {
+    // Simulates: user edits an unrelated field (name/description) on an item
+    // whose target_date was already today. We should NOT re-notify.
+    const { senders, sendPush } = fakeSenders();
+    const result = await maybeSendSameDay(reminderRow(), {
+      store,
+      senders,
+      now: NOW,
+      tz: "UTC",
+      previousTargetDate: "2026-07-14", // same as today in UTC
+    });
+    expect(result.sent).toBe(false);
+    if (!result.sent) expect(result.reason).toContain("no transition");
+    expect(sendPush).not.toHaveBeenCalled();
+  });
+
+  it("FIRES when target_date transitions FROM another day TO today", async () => {
+    // Simulates: user edits due date from tomorrow → today.
+    const { senders, sendPush } = fakeSenders();
+    const result = await maybeSendSameDay(reminderRow(), {
+      store,
+      senders,
+      now: NOW,
+      tz: "UTC",
+      previousTargetDate: "2026-07-20",
+    });
+    expect(result.sent).toBe(true);
+    expect(sendPush).toHaveBeenCalledTimes(1);
+  });
+
+  it("FIRES again on re-transition after date moved AWAY then back to today", async () => {
+    // Simulates: 1) create today (fires + marks sent),
+    //           2) user moves date to tomorrow (no fire),
+    //           3) user moves back to today (should fire again).
+    const { senders, sendPush } = fakeSenders();
+    // Step 1: fresh create → fires + marks sent for this date.
+    await maybeSendSameDay(reminderRow(), { store, senders, now: NOW, tz: "UTC" });
+    expect(sendPush).toHaveBeenCalledTimes(1);
+    // Step 2: (no same-day call because target_date isn't today; skipped upstream.)
+    // Step 3: another transition today. Prior state was tomorrow.
+    const result = await maybeSendSameDay(reminderRow(), {
+      store,
+      senders,
+      now: NOW,
+      tz: "UTC",
+      previousTargetDate: "2026-07-20",
+    });
+    expect(result.sent).toBe(true);
     expect(sendPush).toHaveBeenCalledTimes(2);
   });
 

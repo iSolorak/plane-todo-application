@@ -28,7 +28,7 @@ export function registerDebugRoutes(
   // A ping to confirm you actually redeployed. Bump when you add endpoints so
   // it's obvious from `curl` alone whether the running notifier is stale.
   app.get("/debug/version", async () => ({
-    api: 5,
+    api: 6,
     endpoints: [
       "GET  /debug/version",
       "GET  /debug/now",

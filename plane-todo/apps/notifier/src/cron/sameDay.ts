@@ -14,6 +14,13 @@ export interface SameDayDeps {
   now: Date;
   /** IANA timezone used to resolve "today". */
   tz: string;
+  /**
+   * The item's `target_date` as it was stored BEFORE this webhook's upsert
+   * (undefined = the item didn't exist yet, i.e. a fresh create). Enables
+   * transition detection: fire on any change TO today, skip when today → today
+   * (an unrelated field edit) so we don't spam.
+   */
+  previousTargetDate?: string | null;
 }
 
 export type SameDayResult =
@@ -60,8 +67,28 @@ export async function maybeSendSameDay(
     return skip(`target_date ${rowYmd} != today ${today} (tz=${deps.tz})`);
   }
 
+  // Transition detection: only fire when this webhook is what MOVED the item
+  // into "due today" (either from a different date, or first-time create).
+  // A webhook that leaves target_date at today (e.g. a label/description edit)
+  // must NOT re-notify. `previousTargetDate === undefined` means the item is
+  // brand new — treat as a transition and fire.
+  const prevYmd = deps.previousTargetDate?.slice(0, 10);
+  const wasAlreadyToday = prevYmd === today;
+  if (wasAlreadyToday) {
+    return skip(
+      `no transition: item was already due today before this webhook (prev=${prevYmd})`,
+    );
+  }
+
+  // Real transition to today — clear any stale sent_log so we can fire even if
+  // an earlier "due today" cycle for this item was recorded (e.g. user moved
+  // date away then back). This is what makes "notify on change" work.
+  deps.store.clearSentForItem(row.work_item_id);
+
   const offsetKey = `${SAME_DAY_PREFIX}:${today}`;
   if (deps.store.isSent(row.work_item_id, offsetKey)) {
+    // Defensive: shouldn't be reachable given clearSentForItem above, but keep
+    // as a last-line duplicate-delivery guard.
     return skip(`already sent for ${row.work_item_id} today (${offsetKey})`);
   }
 
