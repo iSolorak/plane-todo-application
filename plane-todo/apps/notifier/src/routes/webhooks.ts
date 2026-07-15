@@ -59,17 +59,25 @@ export function registerWebhookRoute(
     // Same-day push: when the upserted row's target_date == today, fire a
     // one-shot notification. Guarded by sent_log inside maybeSendSameDay so a
     // second event on the same day for the same item is a no-op.
-    if (result.handled && result.op === "upsert" && deps.senders && payload.data) {
-      const row = buildReminderRow(payload.data, ctx);
-      if (row) {
-        maybeSendSameDay(row, {
-          store: deps.store,
-          senders: deps.senders,
-          now: new Date(),
-          tz: deps.env.tz,
-        }).catch((err) => {
-          console.error("[webhook] same-day send failed:", err);
-        });
+    if (result.handled && result.op === "upsert") {
+      if (!deps.senders) {
+        console.log("[same-day] skip: senders not wired in server (redeploy notifier)");
+      } else if (!payload.data) {
+        console.log("[same-day] skip: no payload.data");
+      } else {
+        const row = buildReminderRow(payload.data, ctx);
+        if (!row) {
+          console.log("[same-day] skip: buildReminderRow returned null");
+        } else {
+          maybeSendSameDay(row, {
+            store: deps.store,
+            senders: deps.senders,
+            now: new Date(),
+            tz: deps.env.tz,
+          }).catch((err) => {
+            console.error("[webhook] same-day send failed:", err);
+          });
+        }
       }
     }
 

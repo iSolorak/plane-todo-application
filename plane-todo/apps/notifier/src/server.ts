@@ -71,7 +71,11 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
 
   // Debug/observability endpoints — never mounted in production.
   if (process.env.NODE_ENV !== "production") {
-    registerDebugRoutes(app, { store: deps.store });
+    registerDebugRoutes(app, {
+      store: deps.store,
+      env: deps.env,
+      senders: deps.senders,
+    });
   }
 
   return app;
