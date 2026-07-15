@@ -7,6 +7,12 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./logo.png",
+    "splash": {
+      "image": "./logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#fff8ed"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.solorak.planetodo",
@@ -17,7 +23,11 @@
       }
     },
     "android": {
-      "package": "com.solorak.planetodo"
+      "package": "com.solorak.planetodo",
+      "adaptiveIcon": {
+        "foregroundImage": "./logo.png",
+        "backgroundColor": "#fff8ed"
+      }
     },
     "plugins": [
       "expo-router",
@@ -25,6 +35,7 @@
       [
         "expo-notifications",
         {
+          "icon": "./logo.png",
           "color": "#2563eb"
         }
       ],

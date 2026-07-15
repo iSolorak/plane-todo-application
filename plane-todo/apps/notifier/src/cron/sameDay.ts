@@ -1,5 +1,6 @@
 import type { ReminderRow } from "../db.js";
 import type { Store } from "../db.js";
+import { recordSameDay } from "../debug/log.js";
 import type { Senders } from "../senders/index.js";
 import { dispatch, type DispatchResult } from "./dispatch.js";
 import { ymdInTz } from "./digest.js";
@@ -27,33 +28,41 @@ export type SameDayResult =
  * target_date is later moved to a different day, that new day gets its own key
  * and can fire again.
  *
- * Never throws. Returns a structured result so callers (debug endpoints) can
- * show *what actually happened* — a previous bug returned `true` even when 0
- * devices were registered, masking a totally silent failure.
+ * Never throws. Returns a structured result AND appends a breadcrumb to the
+ * debug ring-buffer so `GET /debug/same-day-log` can show exactly what
+ * happened when a push silently didn't fire.
  */
 export async function maybeSendSameDay(
   row: ReminderRow,
   deps: SameDayDeps,
 ): Promise<SameDayResult> {
-  if (!row.target_date) {
-    const reason = `no target_date on ${row.work_item_id}`;
-    console.log(`[same-day] skip: ${reason}`);
-    return { sent: false, reason };
-  }
+  const at = deps.now.toISOString();
+  const today = row.target_date ? ymdInTz(deps.now, deps.tz) : "n/a";
 
-  const today = ymdInTz(deps.now, deps.tz);
+  const skip = (reason: string): SameDayResult => {
+    console.log(`[same-day] skip: ${reason}`);
+    recordSameDay({
+      at,
+      workItemId: row.work_item_id,
+      name: row.name,
+      target_date: row.target_date,
+      todayYmd: today,
+      tz: deps.tz,
+      outcome: { kind: "skipped", reason },
+    });
+    return { sent: false, reason };
+  };
+
+  if (!row.target_date) return skip(`no target_date on ${row.work_item_id}`);
+
   const rowYmd = row.target_date.slice(0, 10);
   if (rowYmd !== today) {
-    const reason = `target_date ${rowYmd} != today ${today} (tz=${deps.tz})`;
-    console.log(`[same-day] skip: ${reason}`);
-    return { sent: false, reason };
+    return skip(`target_date ${rowYmd} != today ${today} (tz=${deps.tz})`);
   }
 
   const offsetKey = `${SAME_DAY_PREFIX}:${today}`;
   if (deps.store.isSent(row.work_item_id, offsetKey)) {
-    const reason = `already sent for ${row.work_item_id} today (${offsetKey})`;
-    console.log(`[same-day] skip: ${reason}`);
-    return { sent: false, reason };
+    return skip(`already sent for ${row.work_item_id} today (${offsetKey})`);
   }
 
   const tokenCount = deps.store.listDeviceTokens().length;
@@ -88,6 +97,25 @@ export async function maybeSendSameDay(
         `ticketErrors=${result.push?.ticketErrors.length ?? 0}, chunkErrors=${result.push?.chunkErrors.length ?? 0})`,
     );
   }
+
+  recordSameDay({
+    at,
+    workItemId: row.work_item_id,
+    name: row.name,
+    target_date: row.target_date,
+    todayYmd: today,
+    tz: deps.tz,
+    outcome: {
+      kind: "dispatched",
+      tokenCount: result.tokenCount,
+      pushAttempted: result.push?.attempted ?? 0,
+      pushAccepted: result.push?.accepted ?? 0,
+      invalidTokens: result.push?.invalidTokens.length ?? 0,
+      ticketErrors: result.push?.ticketErrors ?? [],
+      chunkErrors: result.push?.chunkErrors ?? [],
+      marked: anythingDelivered,
+    },
+  });
 
   return { sent: true, dispatch: result };
 }

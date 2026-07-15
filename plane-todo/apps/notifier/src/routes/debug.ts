@@ -1,8 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import type { AppEnv } from "../config.js";
 import { dispatch } from "../cron/dispatch.js";
+import { ymdInTz } from "../cron/digest.js";
 import { maybeSendSameDay } from "../cron/sameDay.js";
 import type { Store } from "../db.js";
+import { readSameDayLog } from "../debug/log.js";
 import type { Senders } from "../senders/index.js";
 
 export interface DebugRouteDeps {
@@ -26,16 +28,34 @@ export function registerDebugRoutes(
   // A ping to confirm you actually redeployed. Bump when you add endpoints so
   // it's obvious from `curl` alone whether the running notifier is stale.
   app.get("/debug/version", async () => ({
-    api: 2,
+    api: 3,
     endpoints: [
       "GET  /debug/version",
+      "GET  /debug/now",
       "GET  /debug/reminders",
       "GET  /debug/devices",
       "GET  /debug/tokens",
+      "GET  /debug/same-day-log",
       "POST /debug/same-day",
       "POST /debug/push-test",
     ],
   }));
+
+  // Show what the notifier considers "today" — the #1 reason same-day pushes
+  // silently don't fire is a TZ mismatch between the notifier and Plane's
+  // date semantics. If your Plane item's date is 2026-07-15 but this endpoint
+  // reports todayYmd 2026-07-14, set TZ correctly in the notifier's .env.
+  app.get("/debug/now", async () => {
+    const now = new Date();
+    const tz = deps.env?.tz ?? "UTC";
+    return {
+      serverIsoNow: now.toISOString(),
+      serverEpochMs: now.getTime(),
+      configuredTz: tz,
+      todayYmd: ymdInTz(now, tz),
+      processTzHint: process.env.TZ ?? "(TZ env not set)",
+    };
+  });
 
   app.get("/debug/reminders", async () => deps.store.listReminders());
 
@@ -54,6 +74,14 @@ export function registerDebugRoutes(
     const tokens = deps.store.listDeviceTokens();
     return { count: tokens.length, tokens };
   });
+
+  // In-memory ring buffer of same-day decisions (newest first). After you
+  // change a Plane item's date to today and see no push, `curl` this to find
+  // out exactly why the notifier bailed (tz mismatch, already-sent guard,
+  // token count, Expo rejection reasons, …). Lost on process restart.
+  app.get("/debug/same-day-log", async () => ({
+    entries: readSameDayLog(),
+  }));
 
   // Force a same-day push for a given work item — runs the exact same code
   // path a webhook would, so you can prove the pipeline without touching Plane.
