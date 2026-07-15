@@ -49,12 +49,18 @@ export function registerDebugRoutes(
   app.get("/debug/now", async () => {
     const now = new Date();
     const tz = deps.env?.tz ?? "UTC";
+    const configuredProjectIds = deps.env?.planeProjectIds ?? [];
     return {
       serverIsoNow: now.toISOString(),
       serverEpochMs: now.getTime(),
       configuredTz: tz,
       todayYmd: ymdInTz(now, tz),
       processTzHint: process.env.TZ ?? "(TZ env not set)",
+      // If empty, the notifier tracks every project in the workspace. If
+      // populated, ONLY those project ids are handled — a webhook for any
+      // other project is dropped with "project not tracked".
+      configuredProjectIds,
+      projectFilterMode: configuredProjectIds.length === 0 ? "all" : "allowlist",
     };
   });
 
