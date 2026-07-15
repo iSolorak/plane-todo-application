@@ -28,7 +28,7 @@ export function registerDebugRoutes(
   // A ping to confirm you actually redeployed. Bump when you add endpoints so
   // it's obvious from `curl` alone whether the running notifier is stale.
   app.get("/debug/version", async () => ({
-    api: 4,
+    api: 5,
     endpoints: [
       "GET  /debug/version",
       "GET  /debug/now",
@@ -39,6 +39,7 @@ export function registerDebugRoutes(
       "GET  /debug/same-day-log",
       "POST /debug/same-day",
       "POST /debug/push-test",
+      "POST /debug/reset-sent  { workItemId }",
     ],
   }));
 
@@ -119,6 +120,16 @@ export function registerDebugRoutes(
       tz: deps.env.tz,
     });
     return { attempted: true, result };
+  });
+
+  // Clear the sent_log for a work item so its same-day / offset guards fire
+  // again on the next webhook. Useful when re-testing the same item multiple
+  // times a day without changing item ids. POST /debug/reset-sent { workItemId }.
+  app.post("/debug/reset-sent", async (req, reply) => {
+    const workItemId = (req.body as { workItemId?: string } | null)?.workItemId;
+    if (!workItemId) return reply.code(400).send({ error: "workItemId required" });
+    const cleared = deps.store.clearSentForItem(workItemId);
+    return { ok: true, workItemId, sentLogRowsCleared: cleared };
   });
 
   // Bypass every guard and push a hardcoded message to all registered devices.

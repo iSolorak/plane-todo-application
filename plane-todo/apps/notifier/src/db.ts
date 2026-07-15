@@ -143,6 +143,17 @@ export class Store {
     tx(workItemId);
   }
 
+  /**
+   * Clear only the sent_log entries for a work item, leaving the reminder row
+   * in place. Used by the debug endpoint to re-arm the same-day / offset
+   * guards for a specific item without recreating it. Returns the number of
+   * rows deleted so callers can distinguish "no such id" from "cleared".
+   */
+  clearSentForItem(workItemId: string): number {
+    const info = this.stmts.deleteSentForItem.run(workItemId);
+    return typeof info.changes === "number" ? info.changes : 0;
+  }
+
   allWithTargetDate(): ReminderRow[] {
     return this.stmts.allWithTargetDate.all() as ReminderRow[];
   }
