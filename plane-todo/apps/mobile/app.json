@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.planetodo",
+      "bundleIdentifier": "com.solorak.planetodo",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
@@ -17,7 +17,7 @@
       }
     },
     "android": {
-      "package": "solorak.app.v1"
+      "package": "com.solorak.planetodo"
     },
     "plugins": [
       "expo-router",
@@ -43,8 +43,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "projectid"
+        "projectId": "5be4de54-aeef-462d-951d-158cd6ae2e80"
       }
-    }
+    },
+    "owner": "solorak"
   }
 }

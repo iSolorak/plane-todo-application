@@ -30,8 +30,20 @@ ios/
 *.key
 *.mobileprovision
 
-# Firebase / FCM credentials — never commit real ones (only *.example.json)
+# Firebase / FCM credentials
+#
+# NOTE: `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
+# are NOT real secrets — they're embedded in every APK/IPA you distribute and
+# Google explicitly documents their API keys as safe to expose (secured by
+# SHA-1 + package-name restrictions on the Cloud side, not by hiding the file).
+# We intentionally TRACK apps/mobile/google-services.json so EAS builds are
+# reproducible without extra secret-management setup. Real Firebase security
+# lives in Security Rules + App Check.
+#
+# The service-account key IS a secret and stays ignored below.
 google-services.json
+!apps/mobile/google-services.json
+!plane-todo/apps/mobile/google-services.json
 GoogleService-Info.plist
 **/credentials/*.json
 !**/credentials/*.example.json
