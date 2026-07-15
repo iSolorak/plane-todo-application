@@ -2,7 +2,8 @@ import type { FastifyInstance } from "fastify";
 import type { AppEnv } from "../config.js";
 import { maybeSendSameDay } from "../cron/sameDay.js";
 import type { Store } from "../db.js";
-import { buildReminderRow } from "../reminders.js";
+import { recordWebhook } from "../debug/log.js";
+import { buildReminderRow, projectIdOf } from "../reminders.js";
 import type { Senders } from "../senders/index.js";
 import type { LruSet } from "../webhook/dedup.js";
 import {
@@ -29,6 +30,7 @@ export function registerWebhookRoute(
   deps: WebhookRouteDeps,
 ): void {
   app.post("/webhooks/plane", async (req, reply) => {
+    const at = new Date().toISOString();
     const raw = req.rawBody ?? Buffer.alloc(0);
     const signature = headerValue(req.headers["x-plane-signature"]);
     const delivery = headerValue(req.headers["x-plane-delivery"]);
@@ -37,12 +39,36 @@ export function registerWebhookRoute(
       console.warn(
         `[webhook] rejected: invalid signature (delivery=${delivery ?? "?"})`,
       );
+      recordWebhook({
+        at,
+        signatureOk: false,
+        deliveryId: delivery,
+        deduped: false,
+        handled: false,
+        handlerReason: "invalid signature",
+        hasTargetDate: false,
+        targetDate: null,
+        sameDayInvoked: false,
+        payloadDataKeys: [],
+      });
       return reply.code(401).send({ error: "invalid signature" });
     }
 
     // Dedupe redelivered webhooks by delivery id (idempotent no-op if seen).
     if (delivery && !deps.dedup.add(delivery)) {
       console.log(`[webhook] duplicate delivery ${delivery} — skipped`);
+      recordWebhook({
+        at,
+        signatureOk: true,
+        deliveryId: delivery,
+        deduped: true,
+        handled: false,
+        handlerReason: "deduped",
+        hasTargetDate: false,
+        targetDate: null,
+        sameDayInvoked: false,
+        payloadDataKeys: [],
+      });
       return reply.send({ ok: true, deduped: true });
     }
 
@@ -59,16 +85,22 @@ export function registerWebhookRoute(
     // Same-day push: when the upserted row's target_date == today, fire a
     // one-shot notification. Guarded by sent_log inside maybeSendSameDay so a
     // second event on the same day for the same item is a no-op.
+    let sameDayInvoked = false;
+    let sameDaySkipReason: string | undefined;
     if (result.handled && result.op === "upsert") {
       if (!deps.senders) {
-        console.log("[same-day] skip: senders not wired in server (redeploy notifier)");
+        sameDaySkipReason = "senders not wired in server (redeploy notifier)";
+        console.log(`[same-day] skip: ${sameDaySkipReason}`);
       } else if (!payload.data) {
-        console.log("[same-day] skip: no payload.data");
+        sameDaySkipReason = "no payload.data";
+        console.log(`[same-day] skip: ${sameDaySkipReason}`);
       } else {
         const row = buildReminderRow(payload.data, ctx);
         if (!row) {
-          console.log("[same-day] skip: buildReminderRow returned null");
+          sameDaySkipReason = "buildReminderRow returned null";
+          console.log(`[same-day] skip: ${sameDaySkipReason}`);
         } else {
+          sameDayInvoked = true;
           maybeSendSameDay(row, {
             store: deps.store,
             senders: deps.senders,
@@ -79,7 +111,33 @@ export function registerWebhookRoute(
           });
         }
       }
+    } else if (result.handled) {
+      sameDaySkipReason = `op=${result.op}, not upsert`;
+    } else {
+      sameDaySkipReason = `handler bailed: ${result.reason}`;
     }
+
+    // Record the breadcrumb — everything we know about this delivery in one
+    // record, queryable via GET /debug/webhook-log.
+    const data = payload.data as Record<string, unknown> | undefined;
+    recordWebhook({
+      at,
+      event: payload.event,
+      action: payload.action,
+      workItemId: typeof data?.id === "string" ? data.id : undefined,
+      projectId: payload.data ? projectIdOf(payload.data) : undefined,
+      hasTargetDate: !!payload.data?.target_date,
+      targetDate: payload.data?.target_date ?? null,
+      signatureOk: true,
+      deliveryId: delivery,
+      deduped: false,
+      handled: result.handled,
+      op: result.handled ? result.op : undefined,
+      handlerReason: result.handled ? undefined : result.reason,
+      sameDayInvoked,
+      sameDaySkipReason,
+      payloadDataKeys: data ? Object.keys(data) : [],
+    });
 
     return reply.send({ ok: true, ...result });
   });
@@ -97,7 +155,12 @@ function logOutcome(payload: PlaneWebhookPayload, result: HandlerResult): void {
     return;
   }
 
-  if (!result.handled) return; // other no-ops (untracked project, etc.) stay quiet
+  if (!result.handled) {
+    console.log(
+      `[webhook] not handled event=${payload.event} action=${payload.action} reason=${result.reason}`,
+    );
+    return;
+  }
 
   const data = payload.data;
   if (result.op === "upsert") {

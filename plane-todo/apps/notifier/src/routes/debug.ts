@@ -4,7 +4,7 @@ import { dispatch } from "../cron/dispatch.js";
 import { ymdInTz } from "../cron/digest.js";
 import { maybeSendSameDay } from "../cron/sameDay.js";
 import type { Store } from "../db.js";
-import { readSameDayLog } from "../debug/log.js";
+import { readSameDayLog, readWebhookLog } from "../debug/log.js";
 import type { Senders } from "../senders/index.js";
 
 export interface DebugRouteDeps {
@@ -28,13 +28,14 @@ export function registerDebugRoutes(
   // A ping to confirm you actually redeployed. Bump when you add endpoints so
   // it's obvious from `curl` alone whether the running notifier is stale.
   app.get("/debug/version", async () => ({
-    api: 3,
+    api: 4,
     endpoints: [
       "GET  /debug/version",
       "GET  /debug/now",
       "GET  /debug/reminders",
       "GET  /debug/devices",
       "GET  /debug/tokens",
+      "GET  /debug/webhook-log",
       "GET  /debug/same-day-log",
       "POST /debug/same-day",
       "POST /debug/push-test",
@@ -81,6 +82,13 @@ export function registerDebugRoutes(
   // token count, Expo rejection reasons, …). Lost on process restart.
   app.get("/debug/same-day-log", async () => ({
     entries: readSameDayLog(),
+  }));
+
+  // Ring buffer of incoming Plane webhooks. If /debug/same-day-log is empty
+  // after a Plane change, check here — it will show whether the webhook even
+  // reached the notifier and what the handler decided at each hop.
+  app.get("/debug/webhook-log", async () => ({
+    entries: readWebhookLog(),
   }));
 
   // Force a same-day push for a given work item — runs the exact same code
